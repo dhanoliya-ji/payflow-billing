@@ -5,4 +5,16 @@
   <ItemGroup>
     <ProjectReference Include="..\PayFlow.Domain\PayFlow.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!--
+      The application layer depends on EF Core for IPayFlowDbContext only: the
+      DbSet/IQueryable surface, not on Npgsql or any provider. This keeps use-case
+      orchestration out of the infrastructure project while avoiding a hand-rolled
+      repository layer that would only re-expose IQueryable anyway. See
+      docs/architecture.md for why this trade-off was taken.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
 </Project>
