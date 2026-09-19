@@ -48,3 +48,12 @@ dotnet_naming_style.underscore_prefixed.capitalization = camel_case
 [tests/**/*.cs]
 # Test method names read as sentences: Active_subscription_recovers_from_past_due
 dotnet_diagnostic.CA1707.severity = none
+
+# EF Core writes these files; they are not hand-maintained and should not be held to
+# the style rules above (IDE0161 file-scoped namespaces, naming, and so on).
+[src/PayFlow.Infrastructure/Persistence/Migrations/**.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.CA1861.severity = none
