@@ -23,7 +23,7 @@ jupyter notebook analytics/payflow_analytics.ipynb
 Read from the environment, with defaults matching `docker-compose.yml`:
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `PAYFLOW_DATABASE_URL` | `postgresql+psycopg2://payflow:payflow@localhost:55433/payflow` | Connection string |
 | `PAYFLOW_TENANT_ID` | `11111111-…-111111111111` | Which tenant to analyse |
 | `PAYFLOW_CHART_MODE` | `light` | `light` or `dark` chart palette |
@@ -31,7 +31,7 @@ Read from the environment, with defaults matching `docker-compose.yml`:
 ## What it covers
 
 | Section | Question it answers |
-|---|---|
+| --- | --- |
 | Headline | MRR, ARR, collected, written off, realisation rate |
 | Recurring revenue | MRR month by month, and which plans carry it |
 | Revenue realisation | Of everything invoiced, how much was collected, is outstanding, or was written off |
