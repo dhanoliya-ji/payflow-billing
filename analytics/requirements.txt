@@ -1,0 +1,10 @@
+# Dependencies for payflow_analytics.ipynb.
+#   python -m venv .venv && .venv/Scripts/activate   (Windows)
+#   python -m venv .venv && source .venv/bin/activate (macOS/Linux)
+#   pip install -r analytics/requirements.txt
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+notebook>=7.0
