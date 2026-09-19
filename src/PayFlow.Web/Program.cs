@@ -131,9 +131,9 @@ app.Run();
 
 static IResult Notice(string message) => Results.Content($"<span>{System.Net.WebUtility.HtmlEncode(message)}</span>", "text/html");
 static string E(string value) => System.Net.WebUtility.HtmlEncode(value);
-record CustomerForm(string Email, string DisplayName);
-record PlanForm(string Code, string Name, decimal Amount, string Interval);
-record SubscriptionForm(Guid CustomerId, Guid PlanId, bool Trial);
-record UsageForm(Guid CustomerId, string Metric, decimal Quantity);
-record InvoiceForm(Guid SubscriptionId);
-record PaymentForm(Guid InvoiceId, string? Reference);
+internal sealed record CustomerForm(string Email, string DisplayName);
+internal sealed record PlanForm(string Code, string Name, decimal Amount, string Interval);
+internal sealed record SubscriptionForm(Guid CustomerId, Guid PlanId, bool Trial);
+internal sealed record UsageForm(Guid CustomerId, string Metric, decimal Quantity);
+internal sealed record InvoiceForm(Guid SubscriptionId);
+internal sealed record PaymentForm(Guid InvoiceId, string? Reference);

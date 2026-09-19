@@ -1,1 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup><RootNamespace>PayFlow.Web</RootNamespace></PropertyGroup><ItemGroup><ProjectReference Include="..\PayFlow.Application\PayFlow.Application.csproj" /><ProjectReference Include="..\PayFlow.Infrastructure\PayFlow.Infrastructure.csproj" /><PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" /><PackageReference Include="Microsoft.OpenApi" Version="2.12.2" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>PayFlow.Web</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PayFlow.Application\PayFlow.Application.csproj" />
+    <ProjectReference Include="..\PayFlow.Infrastructure\PayFlow.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.OpenApi" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PayFlow.Api.Tests" />
+  </ItemGroup>
+</Project>

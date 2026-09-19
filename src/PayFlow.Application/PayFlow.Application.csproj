@@ -1,1 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><RootNamespace>PayFlow.Application</RootNamespace></PropertyGroup><ItemGroup><ProjectReference Include="..\PayFlow.Domain\PayFlow.Domain.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PayFlow.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PayFlow.Domain\PayFlow.Domain.csproj" />
+  </ItemGroup>
+</Project>
