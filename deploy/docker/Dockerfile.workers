@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1
+
+# Build stage. The worker host has no HTTP surface, so it runs on the smaller
+# runtime image rather than the ASP.NET one. Project files are copied first so a source-only change reuses the
+# restore layer instead of re-downloading every package.
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+WORKDIR /src
+
+COPY Directory.Build.props Directory.Packages.props PayFlow.sln ./
+COPY src/PayFlow.Domain/PayFlow.Domain.csproj                 src/PayFlow.Domain/
+COPY src/PayFlow.Application/PayFlow.Application.csproj       src/PayFlow.Application/
+COPY src/PayFlow.Infrastructure/PayFlow.Infrastructure.csproj src/PayFlow.Infrastructure/
+COPY src/PayFlow.Workers/PayFlow.Workers.csproj                       src/PayFlow.Web/
+COPY src/PayFlow.Workers/PayFlow.Workers.csproj               src/PayFlow.Workers/
+COPY src/PayFlow.Seeder/PayFlow.Seeder.csproj                 src/PayFlow.Seeder/
+
+RUN dotnet restore src/PayFlow.Workers/PayFlow.Workers.csproj
+
+COPY src/ src/
+RUN dotnet publish src/PayFlow.Workers/PayFlow.Workers.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app
+
+# Runtime stage.
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS runtime
+WORKDIR /app
+
+# Runs as a non-root user: a billing service reachable from the network should not be
+# able to write to its own binaries.
+RUN addgroup -S payflow && adduser -S payflow -G payflow
+COPY --from=build --chown=payflow:payflow /app ./
+USER payflow
+
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_gcServer=1
+
+EXPOSE 8080
+
+# Readiness, not liveness: /health/ready also checks the database, which is what
+# determines whether this instance can actually serve a request.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=5 \
+    CMD wget --quiet --tries=1 --spider http://localhost:8080/health/ready || exit 1
+
+ENTRYPOINT ["dotnet", "PayFlow.Workers.dll"]

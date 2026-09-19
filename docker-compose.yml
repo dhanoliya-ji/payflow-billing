@@ -1,17 +1,63 @@
+# Local development stack. `docker compose up -d postgres redis` is enough to run the
+# solution from the SDK; `docker compose --profile app up -d` also builds and runs the
+# web host and the workers in containers.
+name: payflow
+
 services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: payflow
-      POSTGRES_USER: payflow
-      POSTGRES_PASSWORD: payflow
+      POSTGRES_DB: ${POSTGRES_DB:-payflow}
+      POSTGRES_USER: ${POSTGRES_USER:-payflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-payflow}
+    # Non-default host ports so this stack does not collide with another PostgreSQL
+    # already listening on 5432.
     ports: ["55433:5432"]
     volumes: [payflow-postgres:/var/lib/postgresql/data]
-    healthcheck: { test: ["CMD-SHELL", "pg_isready -U payflow"], interval: 5s, timeout: 5s, retries: 10 }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-payflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   redis:
     image: redis:7-alpine
     ports: ["6380:6379"]
     volumes: [payflow-redis:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.web
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-payflow};Username=${POSTGRES_USER:-payflow};Password=${POSTGRES_PASSWORD:-payflow}
+      ConnectionStrings__Redis: redis:6379
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  workers:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.workers
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-payflow};Username=${POSTGRES_USER:-payflow};Password=${POSTGRES_PASSWORD:-payflow}
+    depends_on:
+      postgres: { condition: service_healthy }
+      # The web host owns the schema; the workers wait for it rather than racing to
+      # apply migrations from a second process.
+      web: { condition: service_started }
+
 volumes:
   payflow-postgres:
   payflow-redis:

@@ -1,0 +1,25 @@
+# Without this, `COPY src/ src/` drags the host's bin/ and obj/ directories into the
+# image and overwrites the restore output generated inside the container, which fails
+# the publish with NETSDK1064 ("package was not found ... since NuGet restore").
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+
+.git/
+.github/
+.vscode/
+
+analytics/
+docs/
+deploy/terraform/
+tests/
+
+**/.venv/
+**/__pycache__/
+**/.ipynb_checkpoints/
+
+**/*.user
+**/.env
+**/.DS_Store
+**/Thumbs.db
