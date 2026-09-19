@@ -1,14 +1,148 @@
 name: CI
+
 on:
-  push: { branches: [main] }
+  push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      # The integration tests run against a real PostgreSQL instance rather than an
+      # in-memory provider, because the billing cycle's central query compares against a
+      # member of a complex type and only a real provider translates it.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: payflow
+          POSTGRES_PASSWORD: payflow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U payflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '10.0.x' }
-      - run: dotnet restore
-      - run: dotnet build --no-restore --configuration Release
-      - run: dotnet test --no-build --configuration Release
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Central package management pins every version, and NuGet auditing is on with
+      # warnings as errors, so a newly published advisory fails the build here rather
+      # than shipping.
+      - name: Restore
+        run: dotnet restore PayFlow.sln
+
+      - name: Build
+        run: dotnet build PayFlow.sln --no-restore --configuration Release
+
+      - name: Test
+        env:
+          PAYFLOW_TEST_POSTGRES: Host=localhost;Port=5432;Database=postgres;Username=payflow;Password=payflow
+        run: >-
+          dotnet test PayFlow.sln
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=results.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory artifacts/test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: artifacts/test-results
+          if-no-files-found: ignore
+
+  schema-check:
+    # A model change without a matching migration is silently fine until deployment,
+    # when the schema and the code disagree. This catches it in review.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef --version 10.*
+
+      - name: Fail if the model has drifted from the migrations
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project src/PayFlow.Infrastructure \
+            --no-build 2>/dev/null || \
+          dotnet ef migrations has-pending-model-changes \
+            --project src/PayFlow.Infrastructure
+
+  notebook:
+    # The analytics notebook reads the live database, so the only meaningful check is
+    # that it still runs end to end against a freshly seeded one.
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: payflow
+          POSTGRES_USER: payflow
+          POSTGRES_PASSWORD: payflow
+        ports: ['55433:5432']
+        options: >-
+          --health-cmd "pg_isready -U payflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install analytics dependencies
+        run: pip install -r analytics/requirements.txt nbconvert
+
+      - name: Seed a year of billing history
+        run: dotnet run --project src/PayFlow.Seeder --configuration Release -- --reset --months 12 --customers 40
+
+      - name: Execute the notebook
+        working-directory: analytics
+        run: >-
+          python -m nbconvert --to notebook --execute --inplace
+          --ExecutePreprocessor.timeout=300 payflow_analytics.ipynb
+
+      - name: Upload the executed notebook
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analytics-notebook
+          path: analytics/payflow_analytics.ipynb
