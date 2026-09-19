@@ -89,13 +89,13 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef --version 10.*
 
+      # dotnet-ef builds the project to read its model, and that build needs a restore.
+      - name: Restore
+        run: dotnet restore src/PayFlow.Infrastructure/PayFlow.Infrastructure.csproj
+
+      # Exits non-zero when the model has changes the migrations do not capture.
       - name: Fail if the model has drifted from the migrations
-        run: |
-          dotnet ef migrations has-pending-model-changes \
-            --project src/PayFlow.Infrastructure \
-            --no-build 2>/dev/null || \
-          dotnet ef migrations has-pending-model-changes \
-            --project src/PayFlow.Infrastructure
+        run: dotnet ef migrations has-pending-model-changes --project src/PayFlow.Infrastructure
 
   notebook:
     # The analytics notebook reads the live database, so the only meaningful check is
