@@ -1,10 +1,46 @@
+# Build output
 bin/
 obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.dll
+*.pdb
+
+# IDE
 .vs/
 .idea/
 *.user
 *.suo
-terraform.tfstate*
-.terraform/
+*.userosscache
+*.sln.docstates
 
-.fake
+# Test + coverage
+[Tt]est[Rr]esult*/
+coverage/
+*.coverage
+*.trx
+*.cobertura.xml
+
+# Local secrets and environment
+.env
+.env.local
+appsettings.Development.local.json
+
+# Terraform
+.terraform/
+terraform.tfstate*
+*.tfvars
+!example.tfvars
+
+# Python / analytics
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
+analytics/output/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
